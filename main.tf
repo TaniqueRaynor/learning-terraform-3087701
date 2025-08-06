@@ -28,6 +28,41 @@ resource "aws_instance" "web" {
   }
 }
 
+module "web_alb" {
+  source = "terraform-aws-modules/alb/aws"
+
+  name    = "web-alb"
+  vpc_id  = module.web_vpc.vpc_id
+  subnets = module.web_vpc.public_subnets
+  security_groups = module.web_sg.security_group_id
+
+  target_groups = {
+    ex-instance = {
+      name_prefix      = "web"
+      protocol         = "HTTP"
+      port             = 80
+      target_type      = "instance"
+      target_id        = aws_instance.web.id
+    }
+  }
+
+   listeners = {
+    ex-http-https-redirect = {
+      port     = 80
+      protocol = "HTTP"
+     
+      forward = {
+        target_group_key = "ex-instance"
+      }
+    }
+  }
+
+  tags = {
+    Environment = "Development"
+    Project     = "web"
+  }
+}
+
 module "web_vpc" {
   source = "terraform-aws-modules/vpc/aws"
 
